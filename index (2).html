@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heart Chat</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#0a0a0f;color:#fff;height:100vh;overflow:hidden}
+.screen{display:none;height:100vh}
+.screen.active{display:flex}
+
+/* AUTH */
+#auth-screen{flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#0a0a0f}
+.auth-heart{font-size:60px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.auth-title{font-size:24px;font-weight:700;color:#ff6b9d}
+.auth-tabs{display:flex;gap:0;background:#1a1a2e;border-radius:50px;padding:4px;width:280px}
+.auth-tab{flex:1;padding:8px;border:none;background:none;color:#888;cursor:pointer;border-radius:50px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600;transition:.2s}
+.auth-tab.active{background:linear-gradient(135deg,#ff6b9d,#c44569);color:#fff}
+.auth-form{display:flex;flex-direction:column;gap:10px;width:280px}
+.auth-input{padding:12px 16px;border-radius:50px;border:1.5px solid #333;background:#1a1a2e;color:#fff;font-size:14px;font-family:'Nunito',sans-serif;outline:none;transition:.2s}
+.auth-input:focus{border-color:#ff6b9d}
+.auth-btn{padding:13px;border-radius:50px;border:none;background:linear-gradient(135deg,#ff6b9d,#c44569);color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Nunito',sans-serif}
+.auth-err{color:#ff4444;font-size:12px;text-align:center;min-height:16px}
+
+/* MAIN */
+#main-screen{flex-direction:row}
+
+/* SIDEBAR */
+.sidebar{width:320px;background:#111118;border-right:1px solid #1e1e2e;display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-header{padding:14px 16px;background:#1a1a2e;display:flex;align-items:center;gap:10px;border-bottom:1px solid #2a2a3e}
+.my-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#ff6b9d,#c44569);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;cursor:pointer}
+.my-name{flex:1;font-size:15px;font-weight:700;color:#ff6b9d}
+.my-status{font-size:11px;color:#4caf50}
+.sidebar-hbtn{background:none;border:none;color:#888;cursor:pointer;font-size:18px;padding:4px}
+.sidebar-hbtn:hover{color:#ff6b9d}
+.search-wrap{padding:10px 12px;border-bottom:1px solid #1e1e2e}
+.search-input{width:100%;padding:9px 14px;border-radius:50px;border:1px solid #2a2a3e;background:#1a1a2e;color:#fff;font-size:13px;font-family:'Nunito',sans-serif;outline:none}
+.search-input:focus{border-color:#ff6b9d}
+.contacts-list{flex:1;overflow-y:auto}
+.contacts-list::-webkit-scrollbar{width:3px}
+.contacts-list::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+.contact-item{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;border-bottom:1px solid #111118;transition:.15s;position:relative}
+.contact-item:hover{background:#1a1a2e}
+.contact-item.active{background:#1e1e30}
+.contact-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;position:relative}
+.contact-avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+.online-dot{position:absolute;bottom:1px;right:1px;width:11px;height:11px;border-radius:50%;background:#4caf50;border:2px solid #111118}
+.contact-info{flex:1;min-width:0}
+.contact-name{font-size:14px;font-weight:600;color:#e0e0e0}
+.contact-last{font-size:12px;color:#666;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.contact-time{font-size:10px;color:#555;flex-shrink:0}
+.unread-badge{background:#ff6b9d;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:700}
+.no-contacts{text-align:center;color:#444;padding:40px 20px;font-size:13px}
+
+/* CHAT AREA */
+.chat-area{flex:1;display:flex;flex-direction:column;background:#0a0a0f}
+.chat-placeholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#333}
+.chat-placeholder .ph-heart{font-size:60px}
+.chat-placeholder p{font-size:14px}
+.chat-header{background:#1a1a2e;padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #2a2a3e;flex-shrink:0}
+.chat-contact-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.chat-contact-info{flex:1}
+.chat-contact-name{font-size:15px;font-weight:700;color:#e0e0e0}
+.chat-contact-status{font-size:12px;color:#4caf50}
+.chat-messages{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px}
+.chat-messages::-webkit-scrollbar{width:4px}
+.chat-messages::-webkit-scrollbar-thumb{background:#333;border-radius:2px}
+.msg-wrap{display:flex;flex-direction:column;max-width:68%}
+.msg-wrap.mine{align-self:flex-end;align-items:flex-end}
+.msg-wrap.other{align-self:flex-start;align-items:flex-start}
+.msg-bubble{padding:9px 13px;border-radius:18px;font-size:14px;line-height:1.5;word-break:break-word}
+.msg-wrap.mine .msg-bubble{background:linear-gradient(135deg,#ff6b9d,#c44569);color:#fff;border-bottom-right-radius:4px}
+.msg-wrap.other .msg-bubble{background:#1e1e30;color:#e0e0e0;border-bottom-left-radius:4px;border:1px solid #2a2a3e}
+.msg-time{font-size:10px;color:#555;margin-top:2px;padding:0 4px}
+.msg-img{max-width:200px;max-height:200px;border-radius:12px;object-fit:cover;cursor:pointer;display:block}
+.typing-txt{font-size:12px;color:#ff6b9d;padding:4px 8px;font-style:italic}
+.chat-input-area{background:#1a1a2e;padding:10px 12px;border-top:1px solid #2a2a3e;flex-shrink:0}
+.input-row{display:flex;gap:8px;align-items:flex-end}
+.msg-input{flex:1;background:#0a0a0f;border:1.5px solid #2a2a3e;border-radius:24px;padding:10px 16px;color:#fff;font-size:14px;font-family:'Nunito',sans-serif;resize:none;max-height:100px;outline:none;line-height:1.4}
+.msg-input:focus{border-color:#ff6b9d}
+.icon-btn{width:40px;height:40px;border-radius:50%;background:#1e1e30;border:1px solid #333;color:#888;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.icon-btn:hover{border-color:#ff6b9d;color:#ff6b9d}
+.send-btn{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#ff6b9d,#c44569);border:none;color:#fff;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+
+/* ADMIN PANEL */
+#admin-screen{flex-direction:column;background:#0a0a0f}
+.admin-header{background:#1a1a2e;padding:14px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #2a2a3e}
+.admin-title{font-size:18px;font-weight:700;color:#ff6b9d;flex:1}
+.admin-back{background:none;border:1px solid #333;color:#888;border-radius:8px;padding:6px 12px;cursor:pointer;font-family:'Nunito',sans-serif}
+.admin-back:hover{border-color:#ff6b9d;color:#ff6b9d}
+.admin-content{flex:1;overflow-y:auto;padding:20px}
+.admin-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:#1a1a2e;border-radius:12px;padding:16px;text-align:center;border:1px solid #2a2a3e}
+.stat-num{font-size:28px;font-weight:700;color:#ff6b9d}
+.stat-label{font-size:12px;color:#666;margin-top:4px}
+.admin-section{background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #2a2a3e}
+.admin-section h3{font-size:14px;color:#ff6b9d;margin-bottom:12px;font-weight:700}
+.admin-user-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #2a2a3e}
+.admin-user-row:last-child{border-bottom:none}
+.admin-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#4f46e5);display:flex;align-items:center;justify-content:center;font-size:14px}
+.admin-user-info{flex:1}
+.admin-user-name{font-size:13px;font-weight:600}
+.admin-user-email{font-size:11px;color:#666}
+.admin-user-status{font-size:11px}
+.online-tag{color:#4caf50}
+.offline-tag{color:#666}
+.ban-btn{background:none;border:1px solid #ff4444;color:#ff4444;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;font-family:'Nunito',sans-serif}
+
+/* IMAGE MODAL */
+#img-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);z-index:999;align-items:center;justify-content:center;cursor:pointer}
+#img-modal.show{display:flex}
+#img-modal img{max-width:90%;max-height:90%;border-radius:12px}
+
+/* ADD CONTACT MODAL */
+#add-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:998;align-items:center;justify-content:center}
+#add-modal.show{display:flex}
+.modal-box{background:#1a1a2e;border-radius:16px;padding:24px;width:300px;display:flex;flex-direction:column;gap:12px;border:1px solid #2a2a3e}
+.modal-title{font-size:16px;font-weight:700;color:#ff6b9d}
+.modal-input{padding:11px 14px;border-radius:50px;border:1.5px solid #333;background:#0a0a0f;color:#fff;font-size:14px;font-family:'Nunito',sans-serif;outline:none}
+.modal-input:focus{border-color:#ff6b9d}
+.modal-btns{display:flex;gap:8px}
+.modal-btn{flex:1;padding:11px;border-radius:50px;border:none;cursor:pointer;font-family:'Nunito',sans-serif;font-size:14px;font-weight:600}
+.modal-btn.primary{background:linear-gradient(135deg,#ff6b9d,#c44569);color:#fff}
+.modal-btn.secondary{background:#2a2a3e;color:#888}
+.modal-err{color:#ff4444;font-size:12px;min-height:16px}
+
+@media(max-width:600px){
+  .sidebar{width:100%;position:absolute;z-index:10;height:100vh}
+  .sidebar.hidden{display:none}
+  .chat-area{width:100%}
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen" class="screen active">
+  <div class="auth-heart">💗</div>
+  <div class="auth-title">Heart Chat</div>
+  <div class="auth-tabs">
+    <button class="auth-tab active" id="login-tab" onclick="switchTab('login')">Login</button>
+    <button class="auth-tab" id="register-tab" onclick="switchTab('register')">Register</button>
+  </div>
+  <div class="auth-form">
+    <input class="auth-input" type="text" id="auth-name" placeholder="Apna naam..." style="display:none" />
+    <input class="auth-input" type="email" id="auth-email" placeholder="Email..." />
+    <input class="auth-input" type="password" id="auth-pass" placeholder="Password..." />
+    <div class="auth-err" id="auth-err"></div>
+    <button class="auth-btn" id="auth-submit-btn">Login 💗</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main-screen" class="screen">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="my-avatar" id="my-avatar">👤</div>
+      <div>
+        <div class="my-name" id="my-name">...</div>
+        <div class="my-status">● Online</div>
+      </div>
+      <button class="sidebar-hbtn" onclick="showAddModal()" title="Contact add karo">➕</button>
+      <button class="sidebar-hbtn" id="admin-btn" onclick="showAdmin()" title="Admin Panel" style="display:none">👑</button>
+      <button class="sidebar-hbtn" onclick="logout()" title="Logout">🚪</button>
+    </div>
+    <div class="search-wrap">
+      <input class="search-input" type="text" placeholder="Search karo..." oninput="filterContacts(this.value)" />
+    </div>
+    <div class="contacts-list" id="contacts-list">
+      <div class="no-contacts">💗 Koi contact nahi<br><small>➕ se contact add karo</small></div>
+    </div>
+  </div>
+
+  <div class="chat-area" id="chat-area">
+    <div class="chat-placeholder" id="chat-placeholder">
+      <div class="ph-heart">💗</div>
+      <p>Kisi se baat karo</p>
+    </div>
+    <div id="active-chat" style="display:none;flex-direction:column;height:100%">
+      <div class="chat-header">
+        <button class="icon-btn" id="back-btn" onclick="showSidebar()" style="display:none">←</button>
+        <div class="chat-contact-avatar" id="chat-avatar">👤</div>
+        <div class="chat-contact-info">
+          <div class="chat-contact-name" id="chat-name">...</div>
+          <div class="chat-contact-status" id="chat-status">...</div>
+        </div>
+      </div>
+      <div class="chat-messages" id="msgs"></div>
+      <div id="typing-area" style="min-height:20px;padding:0 16px"></div>
+      <div class="chat-input-area">
+        <div class="input-row">
+          <button class="icon-btn" onclick="document.getElementById('file-input').click()">📷</button>
+          <input type="file" id="file-input" accept="image/*" style="display:none" onchange="sendImage(event)" />
+          <textarea class="msg-input" id="msg-input" placeholder="Message likho..." rows="1"
+            onkeydown="handleKey(event)" oninput="autoResize(this);sendTyping()"></textarea>
+          <button class="send-btn" onclick="sendMsg()">➤</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="admin-screen" class="screen">
+  <div class="admin-header">
+    <div class="admin-title">👑 Admin Panel</div>
+    <button class="admin-back" onclick="showMain()">← Back</button>
+  </div>
+  <div class="admin-content">
+    <div class="admin-stats">
+      <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total Users</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-online">0</div><div class="stat-label">Online</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-msgs">0</div><div class="stat-label">Messages</div></div>
+    </div>
+    <div class="admin-section">
+      <h3>👥 Sare Users</h3>
+      <div id="admin-users-list">Loading...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CONTACT MODAL -->
+<div id="add-modal">
+  <div class="modal-box">
+    <div class="modal-title">➕ Contact Add Karo</div>
+    <input class="modal-input" type="email" id="add-email" placeholder="Email address..." />
+    <div class="modal-err" id="add-err"></div>
+    <div class="modal-btns">
+      <button class="modal-btn secondary" onclick="hideAddModal()">Cancel</button>
+      <button class="modal-btn primary" onclick="addContact()">Add Karo</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMAGE MODAL -->
+<div id="img-modal" onclick="this.classList.remove('show')"><img id="modal-img" src="" /></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+const ADMIN_EMAIL = "saqiiibsami442l@gmail.com"; // APNA EMAIL YAHAN LIKHO
+const firebaseConfig = {
+  apiKey: "AIzaSyA8oszrdlDggKxz5_0kdWvzokTL65ifC5U",
+  authDomain: "my-chat-4d46d.firebaseapp.com",
+  databaseURL: "https://my-chat-4d46d-default-rtdb.firebaseio.com",
+  projectId: "my-chat-4d46d",
+  storageBucket: "my-chat-4d46d.firebasestorage.app",
+  messagingSenderId: "331317838007",
+  appId: "1:331317838007:web:9e43c2366a13f49515cd32"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+let currentUser = null;
+let currentChatId = null;
+let currentContactId = null;
+let typingTimeout = null;
+let allContacts = [];
+let msgListener = null;
+
+// AUTH TABS
+let isLogin = true;
+function switchTab(tab){
+  isLogin = tab === 'login';
+  document.getElementById('login-tab').classList.toggle('active', isLogin);
+  document.getElementById('register-tab').classList.toggle('active', !isLogin);
+  document.getElementById('auth-name').style.display = isLogin ? 'none' : 'block';
+  document.getElementById('auth-submit-btn').textContent = isLogin ? 'Login 💗' : 'Register 💗';
+  document.getElementById('auth-err').textContent = '';
+}
+
+document.getElementById('auth-submit-btn').onclick = function(){
+  const email = document.getElementById('auth-email').value.trim();
+  const pass = document.getElementById('auth-pass').value.trim();
+  const name = document.getElementById('auth-name').value.trim();
+  const err = document.getElementById('auth-err');
+  if(!email || !pass){ err.textContent='Email aur password zaruri hai!'; return; }
+  if(!isLogin && !name){ err.textContent='Naam zaruri hai!'; return; }
+  err.textContent = isLogin ? 'Logging in...' : 'Registering...';
+  if(isLogin){
+    auth.signInWithEmailAndPassword(email, pass)
+      .catch(e => { err.textContent = 'Galat email ya password!'; });
+  } else {
+    auth.createUserWithEmailAndPassword(email, pass)
+      .then(cred => {
+        return db.ref('users/'+cred.user.uid).set({
+          name: name, email: email, uid: cred.user.uid,
+          createdAt: firebase.database.ServerValue.TIMESTAMP
+        });
+      }).catch(e => { err.textContent = e.message; });
+  }
+};
+
+['auth-email','auth-pass','auth-name'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', e => {
+    if(e.key==='Enter') document.getElementById('auth-submit-btn').click();
+  });
+});
+
+// AUTH STATE
+auth.onAuthStateChanged(user => {
+  if(user){
+    currentUser = user;
+    db.ref('users/'+user.uid).once('value').then(snap => {
+      const data = snap.val() || {};
+      document.getElementById('my-name').textContent = data.name || user.email;
+      document.getElementById('my-avatar').textContent = (data.name||'U')[0].toUpperCase();
+      if(user.email === ADMIN_EMAIL){
+        document.getElementById('admin-btn').style.display = 'block';
+      }
+    });
+    // Set online
+    const presRef = db.ref('presence/'+user.uid);
+    presRef.set({ online: true, name: '', email: user.email });
+    presRef.onDisconnect().remove();
+    // Show main
+    showScreen('main-screen');
+    loadContacts();
+  } else {
+    currentUser = null;
+    showScreen('auth-screen');
+  }
+});
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showMain(){ showScreen('main-screen'); }
+
+// CONTACTS
+function loadContacts(){
+  db.ref('contacts/'+currentUser.uid).on('value', snap => {
+    allContacts = [];
+    const list = document.getElementById('contacts-list');
+    if(!snap.exists()){ list.innerHTML='<div class="no-contacts">💗 Koi contact nahi<br><small>➕ se contact add karo</small></div>'; return; }
+    list.innerHTML = '';
+    const promises = [];
+    snap.forEach(child => {
+      const contactId = child.key;
+      promises.push(
+        db.ref('users/'+contactId).once('value').then(uSnap => {
+          if(!uSnap.exists()) return;
+          const u = uSnap.val();
+          allContacts.push({ id: contactId, ...u });
+          renderContactItem({ id: contactId, ...u });
+        })
+      );
+    });
+  });
+}
+
+function renderContactItem(u){
+  const list = document.getElementById('contacts-list');
+  const existing = document.getElementById('ci-'+u.id);
+  if(existing) existing.remove();
+
+  const item = document.createElement('div');
+  item.className = 'contact-item' + (currentContactId===u.id?' active':'');
+  item.id = 'ci-'+u.id;
+  item.onclick = () => openChat(u);
+
+  db.ref('presence/'+u.id).on('value', snap => {
+    const online = snap.exists();
+    const dot = item.querySelector('.online-dot');
+    if(dot) dot.style.display = online ? 'block' : 'none';
+  });
+
+  item.innerHTML = `
+    <div class="contact-avatar" style="position:relative">
+      ${(u.name||u.email||'?')[0].toUpperCase()}
+      <div class="online-dot" style="display:none"></div>
+    </div>
+    <div class="contact-info">
+      <div class="contact-name">${u.name||u.email}</div>
+      <div class="contact-last" id="last-${u.id}">...</div>
+    </div>
+  `;
+  list.appendChild(item);
+
+  // Last message
+  const chatId = getChatId(currentUser.uid, u.id);
+  db.ref('chats/'+chatId).limitToLast(1).on('value', snap => {
+    if(!snap.exists()){ document.getElementById('last-'+u.id).textContent=''; return; }
+    snap.forEach(child => {
+      const m = child.val();
+      const el = document.getElementById('last-'+u.id);
+      if(el) el.textContent = m.type==='image'?'📷 Image':m.text||'';
+    });
+  });
+}
+
+function filterContacts(q){
+  const items = document.querySelectorAll('.contact-item');
+  items.forEach(item => {
+    const name = item.querySelector('.contact-name').textContent.toLowerCase();
+    item.style.display = name.includes(q.toLowerCase()) ? 'flex' : 'none';
+  });
+}
+
+function getChatId(uid1, uid2){
+  return [uid1, uid2].sort().join('_');
+}
+
+function openChat(u){
+  currentContactId = u.id;
+  currentChatId = getChatId(currentUser.uid, u.id);
+  document.querySelectorAll('.contact-item').forEach(i => i.classList.remove('active'));
+  const ci = document.getElementById('ci-'+u.id);
+  if(ci) ci.classList.add('active');
+
+  document.getElementById('chat-placeholder').style.display = 'none';
+  const ac = document.getElementById('active-chat');
+  ac.style.display = 'flex';
+
+  document.getElementById('chat-name').textContent = u.name || u.email;
+  document.getElementById('chat-avatar').textContent = (u.name||u.email||'?')[0].toUpperCase();
+
+  db.ref('presence/'+u.id).on('value', snap => {
+    document.getElementById('chat-status').textContent = snap.exists() ? '● Online' : '○ Offline';
+    document.getElementById('chat-status').style.color = snap.exists() ? '#4caf50' : '#666';
+  });
+
+  // Mobile
+  if(window.innerWidth <= 600){
+    document.getElementById('sidebar').classList.add('hidden');
+    document.getElementById('back-btn').style.display = 'flex';
+  }
+
+  loadMessages();
+}
+
+function showSidebar(){
+  document.getElementById('sidebar').classList.remove('hidden');
+  document.getElementById('back-btn').style.display = 'none';
+}
+
+function loadMessages(){
+  if(msgListener){ db.ref('chats/'+currentChatId).off('value', msgListener); }
+  const msgs = document.getElementById('msgs');
+  msgs.innerHTML = '';
+  msgListener = db.ref('chats/'+currentChatId).on('value', snap => {
+    msgs.innerHTML = '';
+    if(!snap.exists()) return;
+    snap.forEach(child => renderMessage(child.val()));
+    msgs.scrollTop = msgs.scrollHeight;
+  });
+
+  // Typing
+  db.ref('typing/'+currentChatId+'/'+currentContactId).on('value', snap => {
+    const area = document.getElementById('typing-area');
+    area.innerHTML = snap.exists() ? '<div class="typing-txt">typing...</div>' : '';
+  });
+}
+
+function renderMessage(m){
+  const msgs = document.getElementById('msgs');
+  const isMine = m.senderId === currentUser.uid;
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-wrap ' + (isMine?'mine':'other');
+  const bubble = document.createElement('div');
+  bubble.className = 'msg-bubble';
+  if(m.type==='image'){
+    const img = document.createElement('img');
+    img.src = m.imageData;
+    img.className = 'msg-img';
+    img.onclick = () => { document.getElementById('modal-img').src=m.imageData; document.getElementById('img-modal').classList.add('show'); };
+    bubble.appendChild(img);
+  } else {
+    bubble.textContent = m.text;
+  }
+  wrap.appendChild(bubble);
+  const time = document.createElement('div');
+  time.className = 'msg-time';
+  time.textContent = m.ts ? new Date(m.ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:true}) : '';
+  wrap.appendChild(time);
+  msgs.appendChild(wrap);
+}
+
+function sendMsg(){
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if(!text || !currentChatId) return;
+  input.value = ''; input.style.height='auto';
+  db.ref('typing/'+currentChatId+'/'+currentUser.uid).remove();
+  db.ref('chats/'+currentChatId).push({
+    type:'text', text:text, senderId:currentUser.uid,
+    ts: firebase.database.ServerValue.TIMESTAMP
+  });
+}
+
+function sendImage(event){
+  const file = event.target.files[0];
+  if(!file || !currentChatId) return;
+  event.target.value='';
+  const reader = new FileReader();
+  reader.onload = e => {
+    db.ref('chats/'+currentChatId).push({
+      type:'image', imageData:e.target.result, senderId:currentUser.uid,
+      ts: firebase.database.ServerValue.TIMESTAMP
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function sendTyping(){
+  if(!currentChatId) return;
+  db.ref('typing/'+currentChatId+'/'+currentUser.uid).set(true);
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => db.ref('typing/'+currentChatId+'/'+currentUser.uid).remove(), 2000);
+}
+
+function handleKey(e){
+  if(e.key==='Enter'&&!e.shiftKey){ e.preventDefault(); sendMsg(); }
+}
+
+function autoResize(el){
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,100)+'px';
+}
+
+// ADD CONTACT
+function showAddModal(){ document.getElementById('add-modal').classList.add('show'); document.getElementById('add-email').focus(); }
+function hideAddModal(){ document.getElementById('add-modal').classList.remove('show'); document.getElementById('add-email').value=''; document.getElementById('add-err').textContent=''; }
+
+function addContact(){
+  const email = document.getElementById('add-email').value.trim();
+  const err = document.getElementById('add-err');
+  if(!email){ err.textContent='Email likho!'; return; }
+  if(email===currentUser.email){ err.textContent='Apna email nahi add kar sakte!'; return; }
+  err.textContent = 'Dhundh raha hoon...';
+  db.ref('users').orderByChild('email').equalTo(email).once('value').then(snap => {
+    if(!snap.exists()){ err.textContent='Ye user nahi mila!'; return; }
+    let uid = null;
+    snap.forEach(child => { uid = child.key; });
+    db.ref('contacts/'+currentUser.uid+'/'+uid).set(true);
+    db.ref('contacts/'+uid+'/'+currentUser.uid).set(true);
+    hideAddModal();
+  });
+}
+
+document.getElementById('add-email').addEventListener('keydown', e => { if(e.key==='Enter') addContact(); });
+
+// LOGOUT
+function logout(){
+  db.ref('presence/'+currentUser.uid).remove();
+  auth.signOut();
+}
+
+// ADMIN
+function showAdmin(){
+  showScreen('admin-screen');
+  loadAdminData();
+}
+
+function loadAdminData(){
+  db.ref('users').on('value', snap => {
+    const total = snap.exists() ? Object.keys(snap.val()).length : 0;
+    document.getElementById('stat-total').textContent = total;
+    const list = document.getElementById('admin-users-list');
+    list.innerHTML = '';
+    if(!snap.exists()){ list.innerHTML='<div style="color:#444;font-size:13px">Koi user nahi</div>'; return; }
+    snap.forEach(child => {
+      const u = child.val();
+      const row = document.createElement('div');
+      row.className = 'admin-user-row';
+      row.innerHTML = `
+        <div class="admin-avatar">${(u.name||u.email||'?')[0].toUpperCase()}</div>
+        <div class="admin-user-info">
+          <div class="admin-user-name">${u.name||'—'}</div>
+          <div class="admin-user-email">${u.email||'—'}</div>
+        </div>
+        <div class="admin-user-status" id="ast-${child.key}"><span class="offline-tag">○ Offline</span></div>
+      `;
+      list.appendChild(row);
+      db.ref('presence/'+child.key).on('value', ps => {
+        const el = document.getElementById('ast-'+child.key);
+        if(el) el.innerHTML = ps.exists() ? '<span class="online-tag">● Online</span>' : '<span class="offline-tag">○ Offline</span>';
+      });
+    });
+  });
+
+  db.ref('presence').on('value', snap => {
+    document.getElementById('stat-online').textContent = snap.exists() ? Object.keys(snap.val()).length : 0;
+  });
+}
+</script>
+</body>
+</html>
