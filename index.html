@@ -192,11 +192,19 @@ body{font-family:'Nunito',sans-serif;background:#0a0a0f;color:#fff;height:100vh;
       <div id="typing-area" style="min-height:20px;padding:0 16px"></div>
       <div class="chat-input-area">
         <div class="input-row">
+          <button class="icon-btn" onclick="startVoiceCall()" title="Voice Call">📞</button>
+          <button class="icon-btn" onclick="startVideoCall()" title="Video Call">🎥</button>
           <button class="icon-btn" onclick="document.getElementById('file-input').click()">📷</button>
           <input type="file" id="file-input" accept="image/*" style="display:none" onchange="sendImage(event)" />
           <textarea class="msg-input" id="msg-input" placeholder="Message likho..." rows="1"
             onkeydown="handleKey(event)" oninput="autoResize(this);sendTyping()"></textarea>
-          <button class="send-btn" onclick="sendMsg()">➤</button>
+          <button class="send-btn" id="send-btn" onclick="sendMsg()">➤</button>
+          <button class="icon-btn" id="mic-btn" onmousedown="startRecording()" onmouseup="stopRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()" title="Voice note" style="background:#1e1e30;flex-shrink:0">🎙️</button>
+        </div>
+        <div id="recording-bar" style="display:none;align-items:center;gap:10px;padding:8px 4px">
+          <div style="width:10px;height:10px;border-radius:50%;background:#ff4444;animation:blink 1s infinite"></div>
+          <div style="font-size:12px;color:#ff6b9d">Recording... <span id="rec-timer">0s</span></div>
+          <button onclick="cancelRecording()" style="background:none;border:1px solid #555;color:#888;border-radius:8px;padding:3px 8px;font-size:11px;cursor:pointer;font-family:Nunito,sans-serif">Cancel</button>
         </div>
       </div>
     </div>
@@ -232,6 +240,17 @@ body{font-family:'Nunito',sans-serif;background:#0a0a0f;color:#fff;height:100vh;
       <button class="modal-btn secondary" onclick="hideAddModal()">Cancel</button>
       <button class="modal-btn primary" onclick="addContact()">Add Karo</button>
     </div>
+  </div>
+</div>
+
+<!-- CALL MODAL -->
+<div id="call-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);z-index:1000;flex-direction:column;align-items:center;justify-content:center;gap:20px">
+  <div style="font-size:60px" id="call-avatar-big">👤</div>
+  <div style="font-size:20px;font-weight:700;color:#ff6b9d" id="call-name-big">...</div>
+  <div style="font-size:14px;color:#888" id="call-status-txt">Connecting...</div>
+  <iframe id="call-frame" style="display:none;width:100%;max-width:700px;height:400px;border:none;border-radius:16px" allow="camera;microphone;fullscreen;display-capture"></iframe>
+  <div style="display:flex;gap:16px;margin-top:10px">
+    <button onclick="endCall()" style="width:60px;height:60px;border-radius:50%;background:#ff4444;border:none;color:#fff;font-size:24px;cursor:pointer">📵</button>
   </div>
 </div>
 
@@ -472,6 +491,25 @@ function renderMessage(m){
     img.className = 'msg-img';
     img.onclick = () => { document.getElementById('modal-img').src=m.imageData; document.getElementById('img-modal').classList.add('show'); };
     bubble.appendChild(img);
+  } else if(m.type==='voice'){
+    const audio = document.createElement('audio');
+    audio.controls = true;
+    audio.src = m.audioData;
+    audio.style.cssText = 'max-width:200px;height:36px;border-radius:20px';
+    bubble.appendChild(audio);
+  } else if(m.type==='call'){
+    const callDiv = document.createElement('div');
+    callDiv.style.cssText = 'display:flex;flex-direction:column;gap:6px';
+    const callTxt = document.createElement('div');
+    callTxt.textContent = m.callType==='video' ? '🎥 Video Call' : '📞 Voice Call';
+    callTxt.style.fontWeight = '700';
+    const joinBtn = document.createElement('button');
+    joinBtn.textContent = 'Join Call';
+    joinBtn.style.cssText = 'padding:6px 14px;border-radius:20px;border:none;background:#ff6b9d;color:#fff;cursor:pointer;font-size:12px;font-family:Nunito,sans-serif;font-weight:600';
+    joinBtn.onclick = () => openCallModal(m.callType, m.callUrl);
+    callDiv.appendChild(callTxt);
+    callDiv.appendChild(joinBtn);
+    bubble.appendChild(callDiv);
   } else {
     bubble.textContent = m.text;
   }
@@ -557,6 +595,126 @@ function logout(){
 function showAdmin(){
   showScreen('admin-screen');
   loadAdminData();
+}
+
+// CALL FUNCTIONS
+function startVideoCall(){
+  if(!currentContactId){ return; }
+  const roomName = 'heartchat-' + getChatId(currentUser.uid, currentContactId);
+  const callUrl = 'https://meet.jit.si/' + roomName;
+  
+  // Send call notification message
+  db.ref('chats/'+currentChatId).push({
+    type:'call',
+    text:'🎥 Video Call started — ' + callUrl,
+    callUrl: callUrl,
+    callType: 'video',
+    senderId: currentUser.uid,
+    ts: firebase.database.ServerValue.TIMESTAMP
+  });
+
+  openCallModal('video', callUrl);
+}
+
+function startVoiceCall(){
+  if(!currentContactId){ return; }
+  const roomName = 'heartchat-' + getChatId(currentUser.uid, currentContactId);
+  const callUrl = 'https://meet.jit.si/' + roomName + '?config.startWithVideoMuted=true';
+
+  db.ref('chats/'+currentChatId).push({
+    type:'call',
+    text:'📞 Voice Call started — ' + callUrl,
+    callUrl: callUrl,
+    callType: 'voice',
+    senderId: currentUser.uid,
+    ts: firebase.database.ServerValue.TIMESTAMP
+  });
+
+  openCallModal('voice', callUrl);
+}
+
+function openCallModal(type, url){
+  const modal = document.getElementById('call-modal');
+  modal.style.display = 'flex';
+  document.getElementById('call-name-big').textContent = document.getElementById('chat-name').textContent;
+  document.getElementById('call-avatar-big').textContent = type==='video' ? '🎥' : '📞';
+  document.getElementById('call-status-txt').textContent = 'Connecting...';
+  
+  const frame = document.getElementById('call-frame');
+  frame.style.display = 'block';
+  frame.src = url;
+  
+  setTimeout(()=>{
+    document.getElementById('call-status-txt').textContent = 'Connected ●';
+    document.getElementById('call-status-txt').style.color = '#4caf50';
+  }, 3000);
+}
+
+function endCall(){
+  const modal = document.getElementById('call-modal');
+  modal.style.display = 'none';
+  const frame = document.getElementById('call-frame');
+  frame.src = '';
+  frame.style.display = 'none';
+}
+
+// VOICE NOTE
+let mediaRecorder = null;
+let audioChunks = [];
+let recTimerInterval = null;
+let recSeconds = 0;
+let isCancelled = false;
+
+async function startRecording(){
+  if(mediaRecorder && mediaRecorder.state==='recording') return;
+  isCancelled = false;
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
+    mediaRecorder.ondataavailable = e => { if(e.data.size>0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      if(isCancelled){ audioChunks=[]; return; }
+      const blob = new Blob(audioChunks, {type:'audio/webm'});
+      const reader = new FileReader();
+      reader.onload = e => {
+        if(!currentChatId) return;
+        db.ref('chats/'+currentChatId).push({
+          type:'voice',
+          audioData: e.target.result,
+          senderId: currentUser.uid,
+          ts: firebase.database.ServerValue.TIMESTAMP
+        });
+      };
+      reader.readAsDataURL(blob);
+    };
+    mediaRecorder.start();
+    recSeconds = 0;
+    document.getElementById('recording-bar').style.display = 'flex';
+    document.getElementById('rec-timer').textContent = '0s';
+    document.getElementById('mic-btn').style.background = '#ff4444';
+    recTimerInterval = setInterval(()=>{
+      recSeconds++;
+      document.getElementById('rec-timer').textContent = recSeconds+'s';
+      if(recSeconds >= 120) stopRecording();
+    }, 1000);
+  } catch(e) {
+    alert('Microphone access do! Browser settings mein allow karo.');
+  }
+}
+
+function stopRecording(){
+  if(!mediaRecorder || mediaRecorder.state!=='recording') return;
+  clearInterval(recTimerInterval);
+  document.getElementById('recording-bar').style.display = 'none';
+  document.getElementById('mic-btn').style.background = '#1e1e30';
+  mediaRecorder.stop();
+}
+
+function cancelRecording(){
+  isCancelled = true;
+  stopRecording();
 }
 
 function loadAdminData(){
